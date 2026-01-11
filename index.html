@@ -17,65 +17,72 @@
             height: 600,
             physics: {
                 default: 'arcade',
-                arcade: { gravity: { y: 1800 }, debug: false } 
+                arcade: { gravity: { y: 2000 }, debug: false } 
             },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player, cursors, item, msgText;
+        let player, cursors, item, msgText, particles;
 
         function preload() {
             this.load.image('heroina', 'protagonista.png');
             this.load.image('bosque', 'https://labs.phaser.io/assets/skies/darkstone.png');
             this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
             this.load.image('reliquia', 'https://labs.phaser.io/assets/sprites/apple.png');
+            this.load.image('niebla', 'https://labs.phaser.io/assets/particles/glass.png');
         }
 
         function create() {
-            const worldWidth = 5000; // Nivel un poco más largo
+            const worldWidth = 6000; // Nivel más largo para más aventura
             this.physics.world.setBounds(0, 0, worldWidth, 600);
 
-            // Fondo
-            for (let i = 0; i < 6; i++) {
-                this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5);
+            // Fondo con tinte azulado medieval
+            for (let i = 0; i < 7; i++) {
+                this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5).setTint(0x6666ff);
             }
 
-            // Suelo (Lo bajamos un poco más)
+            // Niebla ambiental (Efecto Valiant Hearts)
+            particles = this.add.particles(0, 0, 'niebla', {
+                x: { min: 0, max: worldWidth },
+                y: { min: 400, max: 600 },
+                speed: 20,
+                lifespan: 5000,
+                quantity: 1,
+                scale: { start: 1, end: 2 },
+                alpha: { start: 0.2, end: 0 },
+                blendMode: 'ADD'
+            });
+
+            // Suelo (Lo bajamos al límite inferior de la pantalla)
             let platforms = this.physics.add.staticGroup();
             for (let x = 0; x < worldWidth; x += 400) {
-                platforms.create(x, 595, 'suelo').setScale(2.5).refreshBody().setTint(0x000000);
+                platforms.create(x, 595, 'suelo').setScale(2.5).refreshBody().setTint(0x111111);
             }
 
-            // --- AJUSTE MAESTRO DEL PERSONAJE ---
-            player = this.physics.add.sprite(200, 100, 'heroina');
-            
-            // 1. Escala: Mantenemos un tamaño visible pero manejable
+            // --- AJUSTE DEFINITIVO DEL PERSONAJE ---
+            player = this.physics.add.sprite(200, 300, 'heroina');
             player.setScale(0.12); 
             player.setCollideWorldBounds(true);
             
-            // 2. RECORTE DE LA CAJA (HITBOX): 
-            // Como tu imagen tiene mucho espacio vacío, reducimos la caja física
-            // a una fracción muy pequeña para que el suelo toque sus pies reales.
-            player.body.setSize(200, 350); 
-            
-            // 3. DESPLAZAMIENTO:
-            // Movemos la caja física hacia abajo y al centro para que coincida con los pies
-            player.body.setOffset(player.width/2 - 100, player.height - 400);
+            // REDUCCIÓN MÁXIMA DE LA CAJA: Solo un pequeño rectángulo en los pies
+            player.body.setSize(180, 100); 
+            // EMPUJE AL FONDO: Esto obliga a que el dibujo "pise" el suelo negro
+            player.body.setOffset(player.width/2 - 90, player.height - 120);
 
-            // Reliquia al final
-            item = this.physics.add.staticImage(4800, 520, 'reliquia').setScale(1.5);
+            // Reliquia al final del mapa
+            item = this.physics.add.staticImage(5800, 530, 'reliquia').setScale(1.8);
 
             // Cámara
             this.cameras.main.setBounds(0, 0, worldWidth, 600);
             this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            // UI Estilo Valiant
-            msgText = this.add.text(400, 80, 'Explora las ruinas medievales...', { 
-                fontSize: '22px', 
+            // Texto UI
+            msgText = this.add.text(400, 60, 'Encuentra la reliquia en el bosque de las sombras...', { 
+                fontSize: '20px', 
                 fill: '#ffffff',
                 fontFamily: 'Verdana',
-                backgroundColor: '#000000aa',
+                backgroundColor: '#000000bb',
                 padding: { x: 15, y: 8 }
             }).setOrigin(0.5).setScrollFactor(0);
 
@@ -84,29 +91,28 @@
         }
 
         function update() {
-            // Velocidad de caminata
             if (cursors.left.isDown) {
-                player.setVelocityX(-280);
+                player.setVelocityX(-300);
                 player.flipX = true;
             } else if (cursors.right.isDown) {
-                player.setVelocityX(280);
+                player.setVelocityX(300);
                 player.flipX = false;
             } else {
                 player.setVelocityX(0);
             }
 
-            // Salto
+            // Salto mejorado
             if (cursors.up.isDown && player.body.touching.down) {
-                player.setVelocityY(-750);
+                player.setVelocityY(-850);
             }
 
-            // Al encontrar la manzana
+            // Interacción
             let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
             if (item.active && dist < 120) {
-                msgText.setText('¡Has recuperado la reliquia del reino!');
+                msgText.setText('¡Reliquia Sagrada Obtenida!');
                 item.destroy();
-                this.time.delayedCall(4000, () => {
-                    msgText.setText('Misión cumplida. Vuelve a casa.');
+                this.time.delayedCall(3000, () => {
+                    msgText.setText('Has salvado el reino. Gracias, valiente.');
                 });
             }
         }
