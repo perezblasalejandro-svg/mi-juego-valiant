@@ -17,7 +17,7 @@
             height: 600,
             physics: {
                 default: 'arcade',
-                arcade: { gravity: { y: 1500 }, debug: false } // Aumenté gravedad para que se sienta pesado
+                arcade: { gravity: { y: 1800 }, debug: false } 
             },
             scene: { preload: preload, create: create, update: update }
         };
@@ -33,49 +33,50 @@
         }
 
         function create() {
-            const worldWidth = 4000;
+            const worldWidth = 5000; // Nivel un poco más largo
             this.physics.world.setBounds(0, 0, worldWidth, 600);
 
-            // Fondo repetido
-            for (let i = 0; i < 5; i++) {
+            // Fondo
+            for (let i = 0; i < 6; i++) {
                 this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5);
             }
 
-            // Suelo sólido
+            // Suelo (Lo bajamos un poco más)
             let platforms = this.physics.add.staticGroup();
             for (let x = 0; x < worldWidth; x += 400) {
-                let s = platforms.create(x, 590, 'suelo').setScale(2).refreshBody();
-                s.setTint(0x000000); // Suelo negro para que no distraiga
+                platforms.create(x, 595, 'suelo').setScale(2.5).refreshBody().setTint(0x000000);
             }
 
-            // PROTAGONISTA - AJUSTES CRÍTICOS
+            // --- AJUSTE MAESTRO DEL PERSONAJE ---
             player = this.physics.add.sprite(200, 100, 'heroina');
             
-            // 1. Escala más pequeña para que el cuadro no tape todo
-            player.setScale(0.06); 
+            // 1. Escala: Mantenemos un tamaño visible pero manejable
+            player.setScale(0.12); 
             player.setCollideWorldBounds(true);
             
-            // 2. AJUSTE DE HITBOX (RECORTE DEL CUADRO)
-            // Esto hace que la "caja" sólida sea pequeña y esté en los pies del dibujo
-            // Ajustamos el ancho a 300 y el alto a 500 dentro de tu imagen gigante
-            player.body.setSize(300, 500);
-            // Desplazamos la caja al centro inferior de la imagen
-            player.body.setOffset(player.width/2 - 150, player.height - 550);
+            // 2. RECORTE DE LA CAJA (HITBOX): 
+            // Como tu imagen tiene mucho espacio vacío, reducimos la caja física
+            // a una fracción muy pequeña para que el suelo toque sus pies reales.
+            player.body.setSize(200, 350); 
+            
+            // 3. DESPLAZAMIENTO:
+            // Movemos la caja física hacia abajo y al centro para que coincida con los pies
+            player.body.setOffset(player.width/2 - 100, player.height - 400);
 
-            // Item al final
-            item = this.physics.add.staticImage(3800, 520, 'reliquia');
+            // Reliquia al final
+            item = this.physics.add.staticImage(4800, 520, 'reliquia').setScale(1.5);
 
-            // Cámara suave
+            // Cámara
             this.cameras.main.setBounds(0, 0, worldWidth, 600);
             this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            // Mensaje UI estilo Valiant Hearts
-            msgText = this.add.text(400, 100, 'Camina hacia el este...', { 
-                fontSize: '24px', 
+            // UI Estilo Valiant
+            msgText = this.add.text(400, 80, 'Explora las ruinas medievales...', { 
+                fontSize: '22px', 
                 fill: '#ffffff',
                 fontFamily: 'Verdana',
-                backgroundColor: '#00000099',
-                padding: { x: 20, y: 10 }
+                backgroundColor: '#000000aa',
+                padding: { x: 15, y: 8 }
             }).setOrigin(0.5).setScrollFactor(0);
 
             cursors = this.input.keyboard.createCursorKeys();
@@ -83,26 +84,30 @@
         }
 
         function update() {
+            // Velocidad de caminata
             if (cursors.left.isDown) {
-                player.setVelocityX(-250);
+                player.setVelocityX(-280);
                 player.flipX = true;
             } else if (cursors.right.isDown) {
-                player.setVelocityX(250);
+                player.setVelocityX(280);
                 player.flipX = false;
             } else {
                 player.setVelocityX(0);
             }
 
-            // Salto con flecha ARRIBA
+            // Salto
             if (cursors.up.isDown && player.body.touching.down) {
-                player.setVelocityY(-600);
+                player.setVelocityY(-750);
             }
 
-            // Interacción con la reliquia
+            // Al encontrar la manzana
             let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
-            if (item.active && dist < 150) {
-                msgText.setText('¡Has encontrado la reliquia medieval!');
+            if (item.active && dist < 120) {
+                msgText.setText('¡Has recuperado la reliquia del reino!');
                 item.destroy();
+                this.time.delayedCall(4000, () => {
+                    msgText.setText('Misión cumplida. Vuelve a casa.');
+                });
             }
         }
     </script>
