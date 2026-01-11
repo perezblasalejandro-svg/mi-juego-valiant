@@ -17,7 +17,7 @@
             height: 600,
             physics: {
                 default: 'arcade',
-                arcade: { gravity: { y: 1200 }, debug: false }
+                arcade: { gravity: { y: 1500 }, debug: false } // Aumenté gravedad para que se sienta pesado
             },
             scene: { preload: preload, create: create, update: update }
         };
@@ -27,55 +27,55 @@
 
         function preload() {
             this.load.image('heroina', 'protagonista.png');
-            // Fondo Medieval: Un bosque neblinoso que encaja con el estilo Valiant Hearts
             this.load.image('bosque', 'https://labs.phaser.io/assets/skies/darkstone.png');
             this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
             this.load.image('reliquia', 'https://labs.phaser.io/assets/sprites/apple.png');
         }
 
         function create() {
-            // Mundo de 4000 píxeles de largo
             const worldWidth = 4000;
             this.physics.world.setBounds(0, 0, worldWidth, 600);
 
-            // Añadimos el fondo repetido para que parezca un bosque infinito
+            // Fondo repetido
             for (let i = 0; i < 5; i++) {
-                this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5).setScale(1);
+                this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5);
             }
 
-            // Suelo de piedra oscuro
+            // Suelo sólido
             let platforms = this.physics.add.staticGroup();
             for (let x = 0; x < worldWidth; x += 400) {
-                let s = platforms.create(x, 580, 'suelo').setScale(2).refreshBody();
-                s.setTint(0x333333); // Lo oscurecemos para que parezca piedra/tierra
+                let s = platforms.create(x, 590, 'suelo').setScale(2).refreshBody();
+                s.setTint(0x000000); // Suelo negro para que no distraiga
             }
 
-            // Protagonista (Ajuste extremo de escala para evitar el cuadro gigante)
-            player = this.physics.add.sprite(200, 400, 'heroina');
-            player.setScale(0.08); // Si sigue siendo grande, baja este número a 0.05
+            // PROTAGONISTA - AJUSTES CRÍTICOS
+            player = this.physics.add.sprite(200, 100, 'heroina');
+            
+            // 1. Escala más pequeña para que el cuadro no tape todo
+            player.setScale(0.06); 
             player.setCollideWorldBounds(true);
             
-            // REDUCIMOS EL CUADRO FÍSICO (Hitbox)
-            // Esto hace que el juego solo detecte el centro de tu dibujo
-            player.body.setSize(400, 600); 
-            player.body.setOffset(player.width/2 - 200, player.height/2 - 300);
+            // 2. AJUSTE DE HITBOX (RECORTE DEL CUADRO)
+            // Esto hace que la "caja" sólida sea pequeña y esté en los pies del dibujo
+            // Ajustamos el ancho a 300 y el alto a 500 dentro de tu imagen gigante
+            player.body.setSize(300, 500);
+            // Desplazamos la caja al centro inferior de la imagen
+            player.body.setOffset(player.width/2 - 150, player.height - 550);
 
-            // La Manzana/Reliquia al final del bosque
+            // Item al final
             item = this.physics.add.staticImage(3800, 520, 'reliquia');
-            item.setTint(0xffd700); // Color oro
 
-            // Cámara
+            // Cámara suave
             this.cameras.main.setBounds(0, 0, worldWidth, 600);
             this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            // UI
-            msgText = this.add.text(400, 50, 'Explora el bosque medieval...', { 
-                fontSize: '22px', 
-                fill: '#fff',
-                fontFamily: 'serif',
-                fontStyle: 'italic',
-                backgroundColor: '#00000088',
-                padding: { x: 15, y: 10 }
+            // Mensaje UI estilo Valiant Hearts
+            msgText = this.add.text(400, 100, 'Camina hacia el este...', { 
+                fontSize: '24px', 
+                fill: '#ffffff',
+                fontFamily: 'Verdana',
+                backgroundColor: '#00000099',
+                padding: { x: 20, y: 10 }
             }).setOrigin(0.5).setScrollFactor(0);
 
             cursors = this.input.keyboard.createCursorKeys();
@@ -83,7 +83,6 @@
         }
 
         function update() {
-            // Movimiento
             if (cursors.left.isDown) {
                 player.setVelocityX(-250);
                 player.flipX = true;
@@ -94,19 +93,16 @@
                 player.setVelocityX(0);
             }
 
-            // SALTO (Vital para Valiant Hearts)
+            // Salto con flecha ARRIBA
             if (cursors.up.isDown && player.body.touching.down) {
-                player.setVelocityY(-500);
+                player.setVelocityY(-600);
             }
 
-            // Interacción
+            // Interacción con la reliquia
             let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
             if (item.active && dist < 150) {
-                msgText.setText('¡Has encontrado la reliquia sagrada!');
+                msgText.setText('¡Has encontrado la reliquia medieval!');
                 item.destroy();
-                this.time.delayedCall(5000, () => {
-                    msgText.setText('Misión cumplida. El reino está a salvo.');
-                });
             }
         }
     </script>
