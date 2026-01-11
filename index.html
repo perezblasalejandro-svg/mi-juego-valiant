@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valiant Shonen Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { border: 2px solid #444; box-shadow: 0 0 20px #000; }
+    </style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 450,
+            physics: { default: 'arcade', arcade: { gravity: { y: 800 } } },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        const game = new Phaser.Game(config);
+        let player, cursors, interactKey, msgText, item;
+
+        function preload() {
+            // Carga la imagen que ya tienes subida
+            this.load.image('heroina', 'protagonista.png');
+            // Recursos de respaldo de internet
+            this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
+            this.load.image('recuerdo', 'https://labs.phaser.io/assets/sprites/apple.png');
+        }
+
+        function create() {
+            this.cameras.main.setBackgroundColor('#2c3e50');
+            let platforms = this.physics.add.staticGroup();
+            platforms.create(400, 440, 'suelo').setScale(3).refreshBody().setTint(0x111111);
+
+            // Personaje principal
+            player = this.physics.add.sprite(100, 300, 'heroina');
+            player.setCollideWorldBounds(true);
+            player.setScale(0.4); 
+
+            item = this.physics.add.staticImage(650, 400, 'recuerdo');
+            msgText = this.add.text(400, 80, 'Usa las FLECHAS para caminar', { 
+                fontSize: '20px', fill: '#fff', backgroundColor: '#000000aa', padding: { x: 10, y: 5 }
+            }).setOrigin(0.5);
+
+            cursors = this.input.keyboard.createCursorKeys();
+            interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+            this.physics.add.collider(player, platforms);
+        }
+
+        function update() {
+            if (cursors.left.isDown) { player.setVelocityX(-180); player.flipX = true; }
+            else if (cursors.right.isDown) { player.setVelocityX(180); player.flipX = false; }
+            else { player.setVelocityX(0); }
+
+            let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
+            if (item.active && dist < 100) {
+                msgText.setText('Presiona [E] para investigar');
+                if (Phaser.Input.Keyboard.JustDown(interactKey)) {
+                    msgText.setText('¡Has encontrado un recuerdo de la guerra!');
+                    item.destroy();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
