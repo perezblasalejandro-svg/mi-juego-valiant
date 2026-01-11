@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valiant Medieval Adventure</title>
+    <title>Valiant Medieval Journey</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
@@ -17,7 +17,7 @@
             height: 600,
             physics: {
                 default: 'arcade',
-                arcade: { gravity: { y: 1000 }, debug: false }
+                arcade: { gravity: { y: 1200 }, debug: false }
             },
             scene: { preload: preload, create: create, update: update }
         };
@@ -26,56 +26,64 @@
         let player, cursors, item, msgText;
 
         function preload() {
-            // Personaje
             this.load.image('heroina', 'protagonista.png');
-            // Fondo Medieval (usamos un recurso externo para asegurar que se vea)
-            this.load.image('fondo', 'https://labs.phaser.io/assets/skies/clown.png'); // Placeholder colorido, puedes cambiarlo por un bosque o castillo
+            // Fondo Medieval: Un bosque neblinoso que encaja con el estilo Valiant Hearts
+            this.load.image('bosque', 'https://labs.phaser.io/assets/skies/darkstone.png');
             this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
-            this.load.image('manzana', 'https://labs.phaser.io/assets/sprites/apple.png');
+            this.load.image('reliquia', 'https://labs.phaser.io/assets/sprites/apple.png');
         }
 
         function create() {
-            // Definimos un mundo muy largo (3000 píxeles de ancho)
-            this.physics.world.setBounds(0, 0, 3000, 600);
+            // Mundo de 4000 píxeles de largo
+            const worldWidth = 4000;
+            this.physics.world.setBounds(0, 0, worldWidth, 600);
 
-            // Añadimos el fondo que se repite para cubrir todo el camino
-            for (let i = 0; i < 4; i++) {
-                this.add.image(i * 1000, 300, 'fondo').setAlpha(0.5);
+            // Añadimos el fondo repetido para que parezca un bosque infinito
+            for (let i = 0; i < 5; i++) {
+                this.add.image(i * 1024, 300, 'bosque').setOrigin(0, 0.5).setScale(1);
             }
 
-            // Creamos un suelo largo
+            // Suelo de piedra oscuro
             let platforms = this.physics.add.staticGroup();
-            for (let x = 0; x < 3000; x += 400) {
-                platforms.create(x, 580, 'suelo').setScale(2).refreshBody();
+            for (let x = 0; x < worldWidth; x += 400) {
+                let s = platforms.create(x, 580, 'suelo').setScale(2).refreshBody();
+                s.setTint(0x333333); // Lo oscurecemos para que parezca piedra/tierra
             }
 
-            // Configuración del personaje (LA HACEMOS PEQUEÑA)
-            player = this.physics.add.sprite(100, 400, 'heroina');
-            player.setScale(0.15); // MUCHO MÁS PEQUEÑA para que no sea un cuadro gigante
+            // Protagonista (Ajuste extremo de escala para evitar el cuadro gigante)
+            player = this.physics.add.sprite(200, 400, 'heroina');
+            player.setScale(0.08); // Si sigue siendo grande, baja este número a 0.05
             player.setCollideWorldBounds(true);
             
-            // Ajustamos el cuerpo de física para que sea solo el centro de la imagen
-            player.body.setSize(player.width * 0.4, player.height * 0.8);
+            // REDUCIMOS EL CUADRO FÍSICO (Hitbox)
+            // Esto hace que el juego solo detecte el centro de tu dibujo
+            player.body.setSize(400, 600); 
+            player.body.setOffset(player.width/2 - 200, player.height/2 - 300);
 
-            // Ponemos la manzana MUY LEJOS (al final del recorrido)
-            item = this.physics.add.staticImage(2800, 520, 'manzana');
+            // La Manzana/Reliquia al final del bosque
+            item = this.physics.add.staticImage(3800, 520, 'reliquia');
+            item.setTint(0xffd700); // Color oro
 
-            // La CÁMARA sigue al jugador
-            this.cameras.main.setBounds(0, 0, 3000, 600);
-            this.cameras.main.startFollow(player);
+            // Cámara
+            this.cameras.main.setBounds(0, 0, worldWidth, 600);
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            // Texto fijo en la pantalla (UI)
-            msgText = this.add.text(20, 20, 'Camina hacia la derecha para encontrar el objeto...', { 
-                fontSize: '20px', 
+            // UI
+            msgText = this.add.text(400, 50, 'Explora el bosque medieval...', { 
+                fontSize: '22px', 
                 fill: '#fff',
-                backgroundColor: '#000000'
-            }).setScrollFactor(0); // Esto hace que el texto no se mueva con la cámara
+                fontFamily: 'serif',
+                fontStyle: 'italic',
+                backgroundColor: '#00000088',
+                padding: { x: 15, y: 10 }
+            }).setOrigin(0.5).setScrollFactor(0);
 
             cursors = this.input.keyboard.createCursorKeys();
             this.physics.add.collider(player, platforms);
         }
 
         function update() {
+            // Movimiento
             if (cursors.left.isDown) {
                 player.setVelocityX(-250);
                 player.flipX = true;
@@ -86,11 +94,19 @@
                 player.setVelocityX(0);
             }
 
-            // Si llegamos a la manzana
+            // SALTO (Vital para Valiant Hearts)
+            if (cursors.up.isDown && player.body.touching.down) {
+                player.setVelocityY(-500);
+            }
+
+            // Interacción
             let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
-            if (item.active && dist < 100) {
-                msgText.setText('¡Has encontrado la reliquia medieval!');
+            if (item.active && dist < 150) {
+                msgText.setText('¡Has encontrado la reliquia sagrada!');
                 item.destroy();
+                this.time.delayedCall(5000, () => {
+                    msgText.setText('Misión cumplida. El reino está a salvo.');
+                });
             }
         }
     </script>
