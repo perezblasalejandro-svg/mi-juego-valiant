@@ -6,17 +6,17 @@
     <title>Valiant Shonen Adventure</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        canvas { border: 2px solid #444; box-shadow: 0 0 20px #000; }
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { border: 2px solid #333; }
     </style>
 </head>
 <body>
     <script>
         const config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 450,
-            physics: { default: 'arcade', arcade: { gravity: { y: 800 } } },
+            width: 1000, // Un poco más ancho para ver más escenario
+            height: 600,
+            physics: { default: 'arcade', arcade: { gravity: { y: 1000 } } },
             scene: { preload: preload, create: create, update: update }
         };
 
@@ -24,26 +24,43 @@
         let player, cursors, interactKey, msgText, item;
 
         function preload() {
-            // Carga la imagen que ya tienes subida
+            // Cargamos la imagen de la protagonista y la misma para el fondo
             this.load.image('heroina', 'protagonista.png');
-            // Recursos de respaldo de internet
-            this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
-            this.load.image('recuerdo', 'https://labs.phaser.io/assets/sprites/apple.png');
+            this.load.image('escenario', 'protagonista.png'); // Usamos la misma imagen como fondo por ahora
+            this.load.image('suelo_invisible', 'https://labs.phaser.io/assets/sprites/platform.png');
+            this.load.image('item', 'https://labs.phaser.io/assets/sprites/apple.png');
         }
 
         function create() {
-            this.cameras.main.setBackgroundColor('#2c3e50');
+            // 1. Fondo: Ponemos la imagen de fondo centrada y grande
+            let bg = this.add.image(500, 300, 'escenario');
+            bg.setScale(1.2); 
+            bg.setAlpha(0.4); // Lo oscurecemos para que destaque el personaje
+
+            // 2. Suelo físico (donde pisan los pies del dibujo)
             let platforms = this.physics.add.staticGroup();
-            platforms.create(400, 440, 'suelo').setScale(3).refreshBody().setTint(0x111111);
+            let ground = platforms.create(500, 580, 'suelo_invisible').setScale(4, 1).refreshBody();
+            ground.setVisible(false); // No queremos ver la barra gris del suelo
 
-            // Personaje principal
-            player = this.physics.add.sprite(100, 300, 'heroina');
+            // 3. Personaje
+            player = this.physics.add.sprite(150, 400, 'heroina');
             player.setCollideWorldBounds(true);
-            player.setScale(0.4); 
+            player.setScale(0.5); // Ajusta este número si quieres que sea más pequeña
+            
+            // Ajuste del "hitbox" (para que no choque el aire alrededor del dibujo)
+            player.body.setSize(player.width * 0.3, player.height * 0.8);
 
-            item = this.physics.add.staticImage(650, 400, 'recuerdo');
-            msgText = this.add.text(400, 80, 'Usa las FLECHAS para caminar', { 
-                fontSize: '20px', fill: '#fff', backgroundColor: '#000000aa', padding: { x: 10, y: 5 }
+            // 4. Objeto para interactuar
+            item = this.physics.add.staticImage(800, 530, 'item');
+            item.setTint(0xff0000);
+
+            // 5. Texto estilo Valiant Hearts
+            msgText = this.add.text(500, 100, '', { 
+                fontSize: '24px', 
+                fill: '#fff', 
+                fontFamily: 'Georgia, serif',
+                stroke: '#000',
+                strokeThickness: 4
             }).setOrigin(0.5);
 
             cursors = this.input.keyboard.createCursorKeys();
@@ -52,17 +69,28 @@
         }
 
         function update() {
-            if (cursors.left.isDown) { player.setVelocityX(-180); player.flipX = true; }
-            else if (cursors.right.isDown) { player.setVelocityX(180); player.flipX = false; }
-            else { player.setVelocityX(0); }
+            // Movimiento suave
+            if (cursors.left.isDown) {
+                player.setVelocityX(-200);
+                player.flipX = true;
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(200);
+                player.flipX = false;
+            } else {
+                player.setVelocityX(0);
+            }
 
+            // Lógica de interacción
             let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
-            if (item.active && dist < 100) {
-                msgText.setText('Presiona [E] para investigar');
+            if (item.active && dist < 120) {
+                msgText.setText('[E] INVESTIGAR');
                 if (Phaser.Input.Keyboard.JustDown(interactKey)) {
-                    msgText.setText('¡Has encontrado un recuerdo de la guerra!');
+                    msgText.setText('Un diario perdido en los escombros...');
                     item.destroy();
+                    this.time.delayedCall(3000, () => { msgText.setText(''); });
                 }
+            } else if (msgText.text === '[E] INVESTIGAR') {
+                msgText.setText('');
             }
         }
     </script>
