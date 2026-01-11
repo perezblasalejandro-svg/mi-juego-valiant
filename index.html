@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valiant Shonen Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { border: 2px solid #333; }
+    </style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 1000, // Un poco más ancho para ver más escenario
+            height: 600,
+            physics: { default: 'arcade', arcade: { gravity: { y: 1000 } } },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        const game = new Phaser.Game(config);
+        let player, cursors, interactKey, msgText, item;
+
+        function preload() {
+            // Cargamos la imagen de la protagonista y la misma para el fondo
+            this.load.image('heroina', 'protagonista.png');
+            this.load.image('escenario', 'protagonista.png'); // Usamos la misma imagen como fondo por ahora
+            this.load.image('suelo_invisible', 'https://labs.phaser.io/assets/sprites/platform.png');
+            this.load.image('item', 'https://labs.phaser.io/assets/sprites/apple.png');
+        }
+
+        function create() {
+            // 1. Fondo: Ponemos la imagen de fondo centrada y grande
+            let bg = this.add.image(500, 300, 'escenario');
+            bg.setScale(1.2); 
+            bg.setAlpha(0.4); // Lo oscurecemos para que destaque el personaje
+
+            // 2. Suelo físico (donde pisan los pies del dibujo)
+            let platforms = this.physics.add.staticGroup();
+            let ground = platforms.create(500, 580, 'suelo_invisible').setScale(4, 1).refreshBody();
+            ground.setVisible(false); // No queremos ver la barra gris del suelo
+
+            // 3. Personaje
+            player = this.physics.add.sprite(150, 400, 'heroina');
+            player.setCollideWorldBounds(true);
+            player.setScale(0.5); // Ajusta este número si quieres que sea más pequeña
+            
+            // Ajuste del "hitbox" (para que no choque el aire alrededor del dibujo)
+            player.body.setSize(player.width * 0.3, player.height * 0.8);
+
+            // 4. Objeto para interactuar
+            item = this.physics.add.staticImage(800, 530, 'item');
+            item.setTint(0xff0000);
+
+            // 5. Texto estilo Valiant Hearts
+            msgText = this.add.text(500, 100, '', { 
+                fontSize: '24px', 
+                fill: '#fff', 
+                fontFamily: 'Georgia, serif',
+                stroke: '#000',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+
+            cursors = this.input.keyboard.createCursorKeys();
+            interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+            this.physics.add.collider(player, platforms);
+        }
+
+        function update() {
+            // Movimiento suave
+            if (cursors.left.isDown) {
+                player.setVelocityX(-200);
+                player.flipX = true;
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(200);
+                player.flipX = false;
+            } else {
+                player.setVelocityX(0);
+            }
+
+            // Lógica de interacción
+            let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
+            if (item.active && dist < 120) {
+                msgText.setText('[E] INVESTIGAR');
+                if (Phaser.Input.Keyboard.JustDown(interactKey)) {
+                    msgText.setText('Un diario perdido en los escombros...');
+                    item.destroy();
+                    this.time.delayedCall(3000, () => { msgText.setText(''); });
+                }
+            } else if (msgText.text === '[E] INVESTIGAR') {
+                msgText.setText('');
+            }
+        }
+    </script>
+</body>
+</html>
