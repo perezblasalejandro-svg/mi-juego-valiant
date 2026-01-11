@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valiant Medieval Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 1000 }, debug: false }
+            },
+            scene: { preload: preload, create: create, update: update }
+        };
 
+        const game = new Phaser.Game(config);
+        let player, cursors, item, msgText;
+
+        function preload() {
+            // Personaje
+            this.load.image('heroina', 'protagonista.png');
+            // Fondo Medieval (usamos un recurso externo para asegurar que se vea)
+            this.load.image('fondo', 'https://labs.phaser.io/assets/skies/clown.png'); // Placeholder colorido, puedes cambiarlo por un bosque o castillo
+            this.load.image('suelo', 'https://labs.phaser.io/assets/sprites/platform.png');
+            this.load.image('manzana', 'https://labs.phaser.io/assets/sprites/apple.png');
+        }
+
+        function create() {
+            // Definimos un mundo muy largo (3000 píxeles de ancho)
+            this.physics.world.setBounds(0, 0, 3000, 600);
+
+            // Añadimos el fondo que se repite para cubrir todo el camino
+            for (let i = 0; i < 4; i++) {
+                this.add.image(i * 1000, 300, 'fondo').setAlpha(0.5);
+            }
+
+            // Creamos un suelo largo
+            let platforms = this.physics.add.staticGroup();
+            for (let x = 0; x < 3000; x += 400) {
+                platforms.create(x, 580, 'suelo').setScale(2).refreshBody();
+            }
+
+            // Configuración del personaje (LA HACEMOS PEQUEÑA)
+            player = this.physics.add.sprite(100, 400, 'heroina');
+            player.setScale(0.15); // MUCHO MÁS PEQUEÑA para que no sea un cuadro gigante
+            player.setCollideWorldBounds(true);
+            
+            // Ajustamos el cuerpo de física para que sea solo el centro de la imagen
+            player.body.setSize(player.width * 0.4, player.height * 0.8);
+
+            // Ponemos la manzana MUY LEJOS (al final del recorrido)
+            item = this.physics.add.staticImage(2800, 520, 'manzana');
+
+            // La CÁMARA sigue al jugador
+            this.cameras.main.setBounds(0, 0, 3000, 600);
+            this.cameras.main.startFollow(player);
+
+            // Texto fijo en la pantalla (UI)
+            msgText = this.add.text(20, 20, 'Camina hacia la derecha para encontrar el objeto...', { 
+                fontSize: '20px', 
+                fill: '#fff',
+                backgroundColor: '#000000'
+            }).setScrollFactor(0); // Esto hace que el texto no se mueva con la cámara
+
+            cursors = this.input.keyboard.createCursorKeys();
+            this.physics.add.collider(player, platforms);
+        }
+
+        function update() {
+            if (cursors.left.isDown) {
+                player.setVelocityX(-250);
+                player.flipX = true;
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(250);
+                player.flipX = false;
+            } else {
+                player.setVelocityX(0);
+            }
+
+            // Si llegamos a la manzana
+            let dist = Phaser.Math.Distance.Between(player.x, player.y, item.x, item.y);
+            if (item.active && dist < 100) {
+                msgText.setText('¡Has encontrado la reliquia medieval!');
+                item.destroy();
+            }
+        }
+    </script>
+</body>
+</html>
